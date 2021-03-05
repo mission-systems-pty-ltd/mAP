@@ -87,13 +87,23 @@ git clone https://github.com/Cartucho/mAP
 Step by step:
 
   1. [Create the ground-truth files](#create-the-ground-truth-files)
-  2. Copy the ground-truth files into the folder **input/ground-truth/**
   3. [Create the detection-results files](#create-the-detection-results-files)
-  4. Copy the detection-results files into the folder **input/detection-results/**
   5. Run the code:
-         ```
-         python main.py
-         ```
+     ```
+     python main.py \
+     -pd path/to/detection-results
+     -gt path/to/ground-truth
+     -id path/to/images
+     -od path/to/output
+     ```
+     
+```
+    python main.py \
+    -pd input/detection-results \
+    -gt input/ground-truth \
+    -id input/images-optional/ \
+    -od ~/out/mAP/example
+```
 
 Optional (if you want to see the **animation**):
 

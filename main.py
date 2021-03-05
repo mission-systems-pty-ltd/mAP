@@ -13,12 +13,19 @@ import numpy as np
 
 def main(arguments):
     args = parse_args(argv=arguments)
-    mAP_score = calculate_mAP_scores(args=args)
+    mAP_score = calculate_mAP_scores(args=args, ground_truth_dir=args.ground_truth_dir,
+                                     prediction_dir=args.prediction_dir,
+                                     img_dir=args.image_dir,
+                                     out_dir=args.output_dir)
     print("This is the overall mAP score: " + str(mAP_score))
 
 
 def parse_args(argv):
     parser = argparse.ArgumentParser()
+    parser.add_argument("-id", "--image_dir", help="path to images", default=None)
+    parser.add_argument("-pd", "--prediction_dir", help="path to predicted annotations")
+    parser.add_argument("-gt", "--ground_truth_dir", help="path to ground truth annotations")
+    parser.add_argument("-od", "--output_dir", help="path to output files", default=None)
     parser.add_argument('-na', '--no-animation', help="no animation is shown.", action="store_true", default=False)
     parser.add_argument('-np', '--no-plot', help="no plot is shown.", action="store_true", default=False)
     parser.add_argument('-q', '--quiet', help="minimalistic console output.", action="store_true", default=False)
@@ -30,7 +37,7 @@ def parse_args(argv):
     return arguments
 
 
-def calculate_mAP_scores(args):
+def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_dir):
 
     '''
         0,0 ------> x (width)
@@ -57,10 +64,11 @@ def calculate_mAP_scores(args):
     # make sure that the cwd() is the location of the python script (so that every path makes sense)
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    GT_PATH = os.path.join(os.getcwd(), 'input', 'ground-truth')
-    DR_PATH = os.path.join(os.getcwd(), 'input', 'detection-results')
+    GT_PATH = ground_truth_dir  # os.path.join(os.getcwd(), 'input', 'ground-truth')
+    DR_PATH = prediction_dir  # os.path.join(os.getcwd(), 'input', 'detection-results')
     # if there are no images then no animation can be shown
-    IMG_PATH = os.path.join(os.getcwd(), 'input', 'images-optional')
+    IMG_PATH = img_dir  # os.path.join(os.getcwd(), 'input', 'images-optional')
+
     if os.path.exists(IMG_PATH):
         for dirpath, dirnames, files in os.walk(IMG_PATH):
             if not files:
@@ -93,7 +101,7 @@ def calculate_mAP_scores(args):
     TEMP_FILES_PATH = ".temp_files"
     if not os.path.exists(TEMP_FILES_PATH):  # if it doesn't exist already
         os.makedirs(TEMP_FILES_PATH)
-    output_files_path = "output"
+    output_files_path = out_dir
     if os.path.exists(output_files_path):  # if it exist already
         # reset the output directory
         shutil.rmtree(output_files_path)
