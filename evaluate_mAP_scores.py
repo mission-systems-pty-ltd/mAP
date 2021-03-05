@@ -16,17 +16,18 @@ def main(arguments):
     mAP_score = calculate_mAP_scores(args=args, ground_truth_dir=args.ground_truth_dir,
                                      prediction_dir=args.prediction_dir,
                                      img_dir=args.image_dir,
-                                     out_dir=args.output_dir)
+                                     out_dir=args.output_dir,
+                                     animate=args.animate)
     print("This is the overall mAP score: " + str(mAP_score))
 
 
 def parse_args(argv):
     parser = argparse.ArgumentParser()
+    parser.add_argument("-pd", "--prediction_dir", help="path to predicted annotations", required=True)
+    parser.add_argument("-gt", "--ground_truth_dir", help="path to ground truth annotations", required=True)
     parser.add_argument("-id", "--image_dir", help="path to images", default=None)
-    parser.add_argument("-pd", "--prediction_dir", help="path to predicted annotations")
-    parser.add_argument("-gt", "--ground_truth_dir", help="path to ground truth annotations")
     parser.add_argument("-od", "--output_dir", help="path to output files", default=None)
-    parser.add_argument('-na', '--no-animation', help="no animation is shown.", action="store_true", default=False)
+    parser.add_argument('-a', '--animate', help="show animation", action="store_true", default=False)
     parser.add_argument('-np', '--no-plot', help="no plot is shown.", action="store_true", default=False)
     parser.add_argument('-q', '--quiet', help="minimalistic console output.", action="store_true", default=False)
     # argparse receiving list of classes to be ignored (e.g., python main.py --ignore person book)
@@ -37,7 +38,7 @@ def parse_args(argv):
     return arguments
 
 
-def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_dir):
+def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_dir, animate):
 
     '''
         0,0 ------> x (width)
@@ -77,15 +78,6 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
     else:
         args.no_animation = True
 
-    # try to import OpenCV if the user didn't choose the option --no-animation
-    show_animation = False
-    if not args.no_animation:
-        try:
-            show_animation = True
-        except ImportError:
-            print("\"opencv-python\" not found, please install to visualize the results.")
-            args.no_animation = True
-
     # try to import Matplotlib if the user didn't choose the option --no-plot
     draw_plot = False
     if not args.no_plot:
@@ -109,7 +101,7 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
     os.makedirs(output_files_path)
     if draw_plot:
         os.makedirs(os.path.join(output_files_path, "classes"))
-    if show_animation:
+    if animate:
         os.makedirs(os.path.join(output_files_path, "images", "detections_one_by_one"))
 
     """
@@ -283,7 +275,7 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
             fp = [0] * nd
             for idx, detection in enumerate(dr_data):
                 file_id = detection["file_id"]
-                if show_animation:
+                if animate:
                     # find ground truth image
                     ground_truth_img = glob.glob1(IMG_PATH, file_id + ".*")
                     # tifCounter = len(glob.glob1(myPath,"*.tif"))
@@ -330,7 +322,7 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
                                 gt_match = obj
 
                 # assign detection as true positive/don't care/false positive
-                if show_animation:
+                if animate:
                     status = "NO MATCH FOUND!"  # status is only used in the animation
                 # set minimum overlap
                 min_overlap = MINOVERLAP
@@ -348,12 +340,12 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
                             # update the ".json" file
                             with open(gt_file, 'w') as f:
                                 f.write(json.dumps(ground_truth_data))
-                            if show_animation:
+                            if animate:
                                 status = "MATCH!"
                         else:
                             # false positive (multiple detection)
                             fp[idx] = 1
-                            if show_animation:
+                            if animate:
                                 status = "REPEATED MATCH!"
                 else:
                     # false positive
@@ -364,7 +356,7 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
                 """
                  Draw image to show animation
                 """
-                if show_animation:
+                if animate:
                     height, widht = img.shape[:2]
                     # colors (OpenCV works with BGR)
                     white = (255, 255, 255)
@@ -489,7 +481,7 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
                 fig.savefig(output_files_path + "/classes/" + class_name + ".png")
                 plt.cla()  # clear axes for next plot
 
-        if show_animation:
+        if animate:
             cv2.destroyAllWindows()
 
         output_file.write("\n# mAP of all classes\n")
@@ -501,7 +493,7 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
     """
      Draw false negatives
     """
-    if show_animation:
+    if animate:
         pink = (203, 192, 255)
         for tmp_file in gt_files:
             ground_truth_data = json.load(open(tmp_file))
