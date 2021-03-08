@@ -39,7 +39,9 @@ class TestEvaluateMAPScores(unittest.TestCase):
                      '-pd', self.test_det_res_dir,
                      '-gt', self.test_gt_dir,
                      '-od', self.test_out_dir]
-        mAP_lib.main(arguments=arguments)
+        with self.assertRaises(SystemExit) as cm:
+            mAP_lib.main(arguments=arguments)
+        self.assertEqual(cm.exception.code, 0)
         self.assertEqual(1, len(os.listdir(self.test_out_dir)))
         if os.path.exists(self.test_out_dir):
             shutil.rmtree(self.test_out_dir)
