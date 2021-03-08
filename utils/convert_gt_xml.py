@@ -1,7 +1,6 @@
 import sys
 import os
 import argparse
-import glob
 import xml.etree.ElementTree as ET
 from colorama import Fore
 
