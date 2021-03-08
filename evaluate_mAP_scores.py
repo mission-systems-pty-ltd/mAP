@@ -9,15 +9,21 @@ import math
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from logzero import logger
+from datetime import datetime as dt
 
 
 def main(arguments):
     args = parse_args(argv=arguments)
-    mAP_score = calculate_mAP_scores(args=args, ground_truth_dir=args.ground_truth_dir,
+    mAP_score = calculate_mAP_scores(ground_truth_dir=args.ground_truth_dir,
                                      prediction_dir=args.prediction_dir,
                                      img_dir=args.image_dir,
                                      out_dir=args.output_dir,
-                                     animate=args.animate)
+                                     animate=args.animate,
+                                     draw_plot=args.plot,
+                                     quiet=args.quiet,
+                                     ignore=args.ignore,
+                                     set_class_iou=args.set_class_iou)
     print("This is the overall mAP score: " + str(mAP_score))
 
 
@@ -28,17 +34,52 @@ def parse_args(argv):
     parser.add_argument("-id", "--image_dir", help="path to images", default=None)
     parser.add_argument("-od", "--output_dir", help="path to output files", default=None)
     parser.add_argument('-a', '--animate', help="show animation", action="store_true", default=False)
-    parser.add_argument('-np', '--no-plot', help="no plot is shown.", action="store_true", default=False)
+    parser.add_argument('-p', '--plot', help="display plot", action="store_true", default=False)
     parser.add_argument('-q', '--quiet', help="minimalistic console output.", action="store_true", default=False)
     # argparse receiving list of classes to be ignored (e.g., python main.py --ignore person book)
-    parser.add_argument('-i', '--ignore', nargs='+', type=str, help="ignore a list of classes.")
-    # argparse receiving list of classes with specific IoU (e.g., python main.py --set-class-iou person 0.7)
-    parser.add_argument('--set-class-iou', nargs='+', type=str, help="set IoU for a specific class.")
+    parser.add_argument('-i', '--ignore', nargs='+', type=str, help="ignore a list of classes.", default=[])
+    # argparse receiving list of classes with specific IoU (e.g., python main.py --set_class_iou person 0.7)
+    parser.add_argument('--set_class_iou', nargs='+', type=str, help="set IoU for a specific class.", default=[])
     arguments = parser.parse_args(argv[1:])
     return arguments
 
 
-def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_dir, animate):
+def check_image_files_exist(image_dir: str) -> bool:
+    if image_dir is not None:
+        if os.path.exists(image_dir):
+            for dirpath, dirnames, files in os.walk(image_dir):
+                if not files:
+                    return False
+        else:
+            return False
+    else:
+        return False
+
+
+def clean_up(clean_up_dirs: list = ['.temp_files']):
+    for cud in clean_up_dirs:
+        if os.path.exists(cud):  # reset the output directory
+            shutil.rmtree(cud)
+
+
+def clean_exit(exit_code: int, msg: str = " ", clean_up_dirs: list = ['.temp_files']):
+    clean_up(clean_up_dirs=clean_up_dirs)
+    if exit_code == 0:
+        logger.info('done {}'.format(msg))
+    else:
+        logger.error('FAIL {}'.format(msg))
+    exit(exit_code)
+
+
+def calculate_mAP_scores(ground_truth_dir: str,
+                         prediction_dir: str,
+                         img_dir: str = None,
+                         out_dir: str = None,
+                         animate: bool = False,
+                         draw_plot: bool = False,
+                         quiet: bool = False,
+                         ignore: list = [],
+                         set_class_iou: list = []):
 
     '''
         0,0 ------> x (width)
@@ -53,56 +94,40 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
     '''
 
     MINOVERLAP = 0.5  # default value (defined in the PASCAL VOC2012 challenge)
-
-    # if there are no classes to ignore then replace None by empty list
-    if args.ignore is None:
-        args.ignore = []
-
-    specific_iou_flagged = False
-    if args.set_class_iou is not None:
-        specific_iou_flagged = True
-
-    # make sure that the cwd() is the location of the python script (so that every path makes sense)
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    if set_class_iou is not None:
+        specific_iou_flagged = True if len(set_class_iou) > 0 else False
+    else:
+        specific_iou_flagged = False
 
     GT_PATH = ground_truth_dir  # os.path.join(os.getcwd(), 'input', 'ground-truth')
     DR_PATH = prediction_dir  # os.path.join(os.getcwd(), 'input', 'detection-results')
     # if there are no images then no animation can be shown
     IMG_PATH = img_dir  # os.path.join(os.getcwd(), 'input', 'images-optional')
 
-    if os.path.exists(IMG_PATH):
-        for dirpath, dirnames, files in os.walk(IMG_PATH):
-            if not files:
-                # no image files found
-                args.no_animation = True
-    else:
-        args.no_animation = True
-
-    # try to import Matplotlib if the user didn't choose the option --no-plot
-    draw_plot = False
-    if not args.no_plot:
-        try:
-            draw_plot = True
-        except ImportError:
-            print("\"matplotlib\" not found, please install it to get the resulting plots.")
-            args.no_plot = True
+    animate = check_image_files_exist(image_dir=IMG_PATH)
 
     """
      Create a ".temp_files/" and "output/" directory
     """
     TEMP_FILES_PATH = ".temp_files"
+    directories_to_clean = [TEMP_FILES_PATH]
+
     if not os.path.exists(TEMP_FILES_PATH):  # if it doesn't exist already
         os.makedirs(TEMP_FILES_PATH)
-    output_files_path = out_dir
-    if os.path.exists(output_files_path):  # if it exist already
-        # reset the output directory
-        shutil.rmtree(output_files_path)
 
-    os.makedirs(output_files_path)
-    if draw_plot:
-        os.makedirs(os.path.join(output_files_path, "classes"))
-    if animate:
-        os.makedirs(os.path.join(output_files_path, "images", "detections_one_by_one"))
+    if out_dir is None:
+        output_files_path = os.path.join(os.path.expanduser("~"), 'out', 'mAP', 'calculate_mAP' + format(str(dt.strftime(dt.now(), '%Y_%m_%d_%Hh_%Mm_%Ss'))))
+        directories_to_clean.append(output_files_path)
+    else:
+        output_files_path = out_dir
+    if output_files_path is not None:
+        if os.path.exists(output_files_path):  # reset the output directory
+            shutil.rmtree(output_files_path)
+        os.makedirs(output_files_path)
+        if draw_plot:
+            os.makedirs(os.path.join(output_files_path, "classes"))
+        if animate:
+            os.makedirs(os.path.join(output_files_path, "images", "detections_one_by_one"))
 
     """
      ground-truth
@@ -135,6 +160,7 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
         is_difficult = False
         already_seen_classes = []
         for line in lines_list:
+            class_name = None
             try:
                 if "difficult" in line:
                     class_name, left, top, right, bottom, _difficult = line.split()
@@ -149,7 +175,7 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
                 error_msg += "by running the script \"remove_space.py\" or \"rename_class.py\" in the \"extra/\" folder."
                 error(error_msg)
             # check if class is in the ignore list, if yes skip
-            if class_name in args.ignore:
+            if class_name in ignore:
                 continue
             bbox = left + " " + top + " " + right + " " + bottom
             if is_difficult:
@@ -186,20 +212,20 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
     # print(gt_counter_per_class)
 
     """
-     Check format of the flag --set-class-iou (if used)
+     Check format of the flag --set_class_iou (if used)
         e.g. check if class exists
     """
     if specific_iou_flagged:
-        n_args = len(args.set_class_iou)
+        n_args = len(set_class_iou)
         error_msg = \
-            '\n --set-class-iou [class_1] [IoU_1] [class_2] [IoU_2] [...]'
+            '\n --set_class_iou [class_1] [IoU_1] [class_2] [IoU_2] [...]'
         if n_args % 2 != 0:
             error('Error, missing arguments. Flag usage:' + error_msg)
         # [class_1] [IoU_1] [class_2] [IoU_2]
         # specific_iou_classes = ['class_1', 'class_2']
-        specific_iou_classes = args.set_class_iou[::2]  # even
+        specific_iou_classes = set_class_iou[::2]  # even
         # iou_list = ['IoU_1', 'IoU_2']
-        iou_list = args.set_class_iou[1::2]  # odd
+        iou_list = set_class_iou[1::2]  # odd
         if len(specific_iou_classes) != len(iou_list):
             error('Error, missing arguments. Flag usage:' + error_msg)
         for tmp_class in specific_iou_classes:
@@ -255,8 +281,7 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
     sum_AP = 0.0
     ap_dictionary = {}
     lamr_dictionary = {}
-    # open file to store the output
-    with open(output_files_path + "/output.txt", 'w') as output_file:
+    with open(os.path.join(output_files_path, "output.txt"), 'w') as output_file:
         output_file.write("# AP and precision/recall per class\n")
         count_true_positives = {}
         for class_index, class_name in enumerate(gt_classes):
@@ -442,7 +467,7 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
             rounded_prec = ['%.2f' % elem for elem in prec]
             rounded_rec = ['%.2f' % elem for elem in rec]
             output_file.write(text + "\n Precision: " + str(rounded_prec) + "\n Recall :" + str(rounded_rec) + "\n\n")
-            if not args.quiet:
+            if quiet is False:
                 print(text)
             ap_dictionary[class_name] = ap
 
@@ -527,7 +552,7 @@ def calculate_mAP_scores(args, ground_truth_dir, prediction_dir, img_dir, out_di
         for line in lines_list:
             class_name = line.split()[0]
             # check if class is in the ignore list, if yes skip
-            if class_name in args.ignore:
+            if class_name in ignore:
                 continue
             # count that object
             if class_name in det_counter_per_class:
@@ -707,17 +732,19 @@ def log_average_miss_rate(prec, rec, num_images):
 
     return lamr, mr, fppi
 
-"""
- throw error and exit
-"""
+
 def error(msg):
+    """
+        throw error and exit
+    """
     print(msg)
     sys.exit(0)
 
-"""
- check if the number is a float between 0.0 and 1.0
-"""
+
 def is_float_between_0_and_1(value):
+    """
+     check if the number is a float between 0.0 and 1.0
+    """
     try:
         val = float(value)
         if val > 0.0 and val < 1.0:
@@ -727,13 +754,14 @@ def is_float_between_0_and_1(value):
     except ValueError:
         return False
 
-"""
- Calculate the AP given the recall and precision array
-    1st) We compute a version of the measured precision/recall curve with
-         precision monotonically decreasing
-    2nd) We compute the AP as the area under this curve by numerical integration.
-"""
+
 def voc_ap(rec, prec):
+    """
+     Calculate the AP given the recall and precision array
+        1st) We compute a version of the measured precision/recall curve with
+             precision monotonically decreasing
+        2nd) We compute the AP as the area under this curve by numerical integration.
+    """
     """
     --- Official matlab code VOC2012---
     mrec=[0 ; rec ; 1];
@@ -780,10 +808,11 @@ def voc_ap(rec, prec):
         ap += ((mrec[i]-mrec[i-1])*mpre[i])
     return ap, mrec, mpre
 
-"""
- Convert the lines of a file to a list
-"""
+
 def file_lines_to_list(path):
+    """
+     Convert the lines of a file to a list
+    """
     # open txt file lines to a list
     with open(path) as f:
         content = f.readlines()
@@ -791,10 +820,11 @@ def file_lines_to_list(path):
     content = [x.strip() for x in content]
     return content
 
-"""
- Draws text in image
-"""
+
 def draw_text_in_image(img, text, pos, color, line_width):
+    """
+     Draws text in image
+    """
     font = cv2.FONT_HERSHEY_PLAIN
     fontScale = 1
     lineType = 1
@@ -808,10 +838,11 @@ def draw_text_in_image(img, text, pos, color, line_width):
     text_width, _ = cv2.getTextSize(text, font, fontScale, lineType)[0]
     return img, (line_width + text_width)
 
-"""
- Plot - adjust axes
-"""
+
 def adjust_axes(r, t, fig, axes):
+    """
+     Plot - adjust axes
+    """
     # get text width for re-scaling
     bb = t.get_window_extent(renderer=r)
     text_width_inches = bb.width / fig.dpi
@@ -823,10 +854,11 @@ def adjust_axes(r, t, fig, axes):
     x_lim = axes.get_xlim()
     axes.set_xlim([x_lim[0], x_lim[1]*propotion])
 
-"""
- Draw plot using Matplotlib
-"""
+
 def draw_plot_func(dictionary, n_classes, window_title, plot_title, x_label, output_path, to_show, plot_color, true_p_bar):
+    """
+     Draw plot using Matplotlib
+    """
     # sort the dictionary by decreasing value, into a list of tuples
     sorted_dic_by_value = sorted(dictionary.items(), key=operator.itemgetter(1))
     # unpacking the list of tuples into two lists
