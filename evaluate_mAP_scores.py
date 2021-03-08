@@ -14,6 +14,7 @@ from datetime import datetime as dt
 
 
 def main(arguments):
+    logger.info("mAP CLI Tool")
     args = parse_args(argv=arguments)
     mAP_score = calculate_mAP_scores(ground_truth_dir=args.ground_truth_dir,
                                      prediction_dir=args.prediction_dir,
@@ -25,6 +26,7 @@ def main(arguments):
                                      ignore=args.ignore,
                                      set_class_iou=args.set_class_iou)
     print("This is the overall mAP score: " + str(mAP_score))
+    clean_exit(exit_code=0)
 
 
 def parse_args(argv):
@@ -65,9 +67,9 @@ def clean_up(clean_up_dirs: list = ['.temp_files']):
 def clean_exit(exit_code: int, msg: str = " ", clean_up_dirs: list = ['.temp_files']):
     clean_up(clean_up_dirs=clean_up_dirs)
     if exit_code == 0:
-        logger.info('done {}'.format(msg))
+        logger.info('DONE! mAP Score Calculated. {}'.format(msg))
     else:
-        logger.error('FAIL {}'.format(msg))
+        logger.error('FAIL! {}'.format(msg))
     exit(exit_code)
 
 
@@ -92,7 +94,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
       (height)            *
                     (Right,Bottom)
     '''
-
+    logger.info("Calculating mAP Score")
     MINOVERLAP = 0.5  # default value (defined in the PASCAL VOC2012 challenge)
     if set_class_iou is not None:
         specific_iou_flagged = True if len(set_class_iou) > 0 else False
@@ -137,7 +139,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
     # get a list with the ground-truth files
     ground_truth_files_list = glob.glob(GT_PATH + '/*.txt')
     if len(ground_truth_files_list) == 0:
-        error("Error: No ground-truth files found!")
+        clean_exit(exit_code=1, msg="Error: No ground-truth files found!", clean_up_dirs=directories_to_clean)
     ground_truth_files_list.sort()
     # dictionary with counter per class
     gt_counter_per_class = {}
@@ -153,7 +155,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
         if not os.path.exists(temp_path):
             error_msg = "Error. File not found: {}\n".format(temp_path)
             error_msg += "(You can avoid this error message by running extra/intersect-gt-and-dr.py)"
-            error(error_msg)
+            clean_exit(exit_code=1, msg=error_msg, clean_up_dirs=directories_to_clean)
         lines_list = file_lines_to_list(txt_file)
         # create ground-truth dictionary
         bounding_boxes = []
@@ -173,7 +175,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
                 error_msg += " Received: " + line
                 error_msg += "\n\nIf you have a <class_name> with spaces between words you should remove them\n"
                 error_msg += "by running the script \"remove_space.py\" or \"rename_class.py\" in the \"extra/\" folder."
-                error(error_msg)
+                clean_exit(exit_code=1, msg=error_msg, clean_up_dirs=directories_to_clean)
             # check if class is in the ignore list, if yes skip
             if class_name in ignore:
                 continue
@@ -220,20 +222,24 @@ def calculate_mAP_scores(ground_truth_dir: str,
         error_msg = \
             '\n --set_class_iou [class_1] [IoU_1] [class_2] [IoU_2] [...]'
         if n_args % 2 != 0:
-            error('Error, missing arguments. Flag usage:' + error_msg)
+            error_msg = 'Error, missing arguments. Flag usage:' + error_msg
+            clean_exit(exit_code=1, msg=error_msg, clean_up_dirs=directories_to_clean)
         # [class_1] [IoU_1] [class_2] [IoU_2]
         # specific_iou_classes = ['class_1', 'class_2']
         specific_iou_classes = set_class_iou[::2]  # even
         # iou_list = ['IoU_1', 'IoU_2']
         iou_list = set_class_iou[1::2]  # odd
         if len(specific_iou_classes) != len(iou_list):
-            error('Error, missing arguments. Flag usage:' + error_msg)
+            error_msg = 'Error, missing arguments. Flag usage:' + error_msg
+            clean_exit(exit_code=1, msg=error_msg, clean_up_dirs=directories_to_clean)
         for tmp_class in specific_iou_classes:
             if tmp_class not in gt_classes:
-                error('Error, unknown class \"' + tmp_class + '\". Flag usage:' + error_msg)
+                error_msg = 'Error, unknown class \"' + tmp_class + '\". Flag usage:' + error_msg
+                clean_exit(exit_code=1, msg=error_msg, clean_up_dirs=directories_to_clean)
         for num in iou_list:
             if not is_float_between_0_and_1(num):
-                error('Error, IoU must be between 0.0 and 1.0. Flag usage:' + error_msg)
+                error_msg = 'Error, IoU must be between 0.0 and 1.0. Flag usage:' + error_msg
+                clean_exit(exit_code=1, msg=error_msg, clean_up_dirs=directories_to_clean)
 
     """
      detection-results
@@ -255,7 +261,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
                 if not os.path.exists(temp_path):
                     error_msg = "Error. File not found: {}\n".format(temp_path)
                     error_msg += "(You can avoid this error message by running extra/intersect-gt-and-dr.py)"
-                    error(error_msg)
+                    clean_exit(exit_code=1, msg=error_msg, clean_up_dirs=directories_to_clean)
             lines = file_lines_to_list(txt_file)
             for line in lines:
                 try:
@@ -264,7 +270,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
                     error_msg = "Error: File " + txt_file + " in the wrong format.\n"
                     error_msg += " Expected: <class_name> <confidence> <left> <top> <right> <bottom>\n"
                     error_msg += " Received: " + line
-                    error(error_msg)
+                    clean_exit(exit_code=1, msg=error_msg, clean_up_dirs=directories_to_clean)
                 if tmp_class_name == class_name:
                     # print("match")
                     bbox = left + " " + top + " " + right + " " + bottom
@@ -305,9 +311,11 @@ def calculate_mAP_scores(ground_truth_dir: str,
                     ground_truth_img = glob.glob1(IMG_PATH, file_id + ".*")
                     # tifCounter = len(glob.glob1(myPath,"*.tif"))
                     if len(ground_truth_img) == 0:
-                        error("Error. Image not found with id: " + file_id)
+                        error_msg ="Error. Image not found with id: " + file_id
+                        clean_exit(exit_code=1, msg=error_msg, clean_up_dirs=directories_to_clean)
                     elif len(ground_truth_img) > 1:
-                        error("Error. Multiple image with id: " + file_id)
+                        error_msg = "Error. Multiple image with id: " + file_id
+                        clean_exit(exit_code=1, msg=error_msg, clean_up_dirs=directories_to_clean)
                     else:  # found image
                         # print(IMG_PATH + "/" + ground_truth_img[0])
                         # Load image
@@ -686,7 +694,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
             plot_color,
             ""
         )
-
+    clean_up(clean_up_dirs=directories_to_clean)
     return mAP
 
 
@@ -731,14 +739,6 @@ def log_average_miss_rate(prec, rec, num_images):
     lamr = math.exp(np.mean(np.log(np.maximum(1e-10, ref))))
 
     return lamr, mr, fppi
-
-
-def error(msg):
-    """
-        throw error and exit
-    """
-    print(msg)
-    sys.exit(0)
 
 
 def is_float_between_0_and_1(value):
