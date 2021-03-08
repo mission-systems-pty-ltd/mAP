@@ -395,7 +395,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
                  Draw image to show animation
                 """
                 if animate:
-                    height, widht = img.shape[:2]
+                    height, width = img.shape[:2]
                     # colors (OpenCV works with BGR)
                     white = (255, 255, 255)
                     light_blue = (255, 200, 100)
