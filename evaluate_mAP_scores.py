@@ -51,10 +51,14 @@ def check_image_files_exist(image_dir: str) -> bool:
         if os.path.exists(image_dir):
             for dirpath, dirnames, files in os.walk(image_dir):
                 if not files:
+                    logger.warning("No images in directory {} - animations deactivated!".format(image_dir))
                     return False
         else:
+            logger.warning("No image directory {} - animations deactivated!".format(image_dir))
             return False
     else:
+        logger.warning("Animation option selected - but no image directory provided. Please provide a path to a"
+                       " directory of images (see option -id)")
         return False
 
 
@@ -106,7 +110,8 @@ def calculate_mAP_scores(ground_truth_dir: str,
     # if there are no images then no animation can be shown
     IMG_PATH = img_dir  # os.path.join(os.getcwd(), 'input', 'images-optional')
 
-    animate = check_image_files_exist(image_dir=IMG_PATH)
+    if animate:
+        animate = check_image_files_exist(image_dir=IMG_PATH)
 
     """
      Create a ".temp_files/" and "output/" directory
