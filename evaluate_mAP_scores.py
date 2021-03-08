@@ -47,19 +47,20 @@ def parse_args(argv):
 
 
 def check_image_files_exist(image_dir: str) -> bool:
-    if image_dir is not None:
-        if os.path.exists(image_dir):
+    if image_dir is None:
+        logger.warning("Animation option selected - but no image directory provided. Please provide a path to a"
+                       " directory of images (see option -id)")
+        return False
+    else:
+        if os.path.exists(image_dir) is False:
+            logger.warning("No image directory {} - animations deactivated!".format(image_dir))
+            return False
+        else:
             for dirpath, dirnames, files in os.walk(image_dir):
                 if not files:
                     logger.warning("No images in directory {} - animations deactivated!".format(image_dir))
                     return False
-        else:
-            logger.warning("No image directory {} - animations deactivated!".format(image_dir))
-            return False
-    else:
-        logger.warning("Animation option selected - but no image directory provided. Please provide a path to a"
-                       " directory of images (see option -id)")
-        return False
+            return True
 
 
 def clean_up(clean_up_dirs: list = ['.temp_files']):
@@ -86,7 +87,6 @@ def calculate_mAP_scores(ground_truth_dir: str,
                          quiet: bool = False,
                          ignore: list = [],
                          set_class_iou: list = []):
-
     '''
         0,0 ------> x (width)
          |
@@ -110,8 +110,11 @@ def calculate_mAP_scores(ground_truth_dir: str,
     # if there are no images then no animation can be shown
     IMG_PATH = img_dir  # os.path.join(os.getcwd(), 'input', 'images-optional')
 
+    logger.debug(animate)
     if animate:
+        logger.debug(animate)
         animate = check_image_files_exist(image_dir=IMG_PATH)
+    logger.debug(animate)
 
     """
      Create a ".temp_files/" and "output/" directory
