@@ -3,40 +3,33 @@ import os
 import argparse
 import glob
 import xml.etree.ElementTree as ET
+from colorama import Fore
 
 
 def main(arguments):
-    parse_args(argv=arguments)
+    args = parse_args(argv=arguments)
+    converted_file_dir = convert_gt_xml(ground_truth_dir=args.ground_truth_dir, out_dir=args.output_dir)
+    print("Output at: " + converted_file_dir)
 
 
-def do_the_thing():
-    print("ERROR NOT WORKING")
-    sys.exit(1)
-    # make sure that the cwd() in the beginning is the location of the python script (so that every path makes sense)
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-    # change directory to the one with the files to be changed
-    parent_path = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
-    parent_path = os.path.abspath(os.path.join(parent_path, os.pardir))
-    GT_PATH = os.path.join(parent_path, 'input', 'ground-truth')
-    # print(GT_PATH)
-    os.chdir(GT_PATH)
-
-    # old files (xml format) will be moved to a "backup" folder
-    ## create the backup dir if it doesn't exist already
-    if not os.path.exists("backup"):
-        os.makedirs("backup")
-
-    # create VOC format files
-    xml_list = glob.glob('*.xml')
+def convert_gt_xml(ground_truth_dir: str, out_dir: str):
+    if os.path.exists(out_dir):
+        print(Fore.RED + "ERROR: path exists at {} - try a different output path.".format(out_dir) + Fore.RESET)
+        sys.exit(1)
+    else:
+        os.mkdir(out_dir)
+    file_list = [f for f in os.listdir(ground_truth_dir) if os.path.isfile(os.path.join(ground_truth_dir, f))]
+    xml_list = [f for f in file_list if f.endswith('.xml')]
+    print("Num files to convert: {}".format(len(xml_list)))
     if len(xml_list) == 0:
-        print("Error: no .xml files found in ground-truth")
-        sys.exit()
-    for tmp_file in xml_list:
-        # print(tmp_file)
-        # 1. create new file (VOC format)
-        with open(tmp_file.replace(".xml", ".txt"), "a") as new_f:
-            root = ET.parse(tmp_file).getroot()
+        print(Fore.RED + "ERROR: no .xml files found in ground-truth - exiting task." + Fore.RESET)
+        sys.exit(1)
+
+    for xf in xml_list:
+        file_name, file_ext = os.path.splitext(xf)
+
+        with open(os.path.join(out_dir, file_name + '.txt'), 'w+') as new_f:
+            root = ET.parse(os.path.join(ground_truth_dir, xf)).getroot()
             for obj in root.findall('object'):
                 obj_name = obj.find('name').text
                 bndbox = obj.find('bndbox')
@@ -45,9 +38,8 @@ def do_the_thing():
                 right = bndbox.find('xmax').text
                 bottom = bndbox.find('ymax').text
                 new_f.write("%s %s %s %s %s\n" % (obj_name, left, top, right, bottom))
-        # 2. move old file (xml format) to backup
-        os.rename(tmp_file, os.path.join("backup", tmp_file))
     print("Conversion completed!")
+    return out_dir
 
 
 def parse_args(argv):
