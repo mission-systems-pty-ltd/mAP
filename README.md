@@ -21,6 +21,24 @@ This repository is a fork of [Cartucho/mAP](https://github.com/Cartucho/mAP) [![
 
 ---
 
+# Requirements
+
+## PyQt5
+Install PyQt5 the right way - the pip3 installation can be a little unstable.
+```
+sudo apt-get install python3-pyqt5  
+sudo apt-get install pyqt5-dev-tools
+sudo apt-get install qttools5-dev-tools
+```
+
+## pip packages
+```
+pip3 install requirements.txt
+```
+
+
+---
+
 # Usage
 
 ## evaluate_mAP_scores.py
