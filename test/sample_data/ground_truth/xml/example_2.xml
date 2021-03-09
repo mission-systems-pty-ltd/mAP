@@ -1,0 +1,27 @@
+<annotation verified="yes">
+	<folder>images</folder>
+	<filename>example-1.jpg</filename>
+    <path>/path/to/raccoon-7.jpg</path>
+    <source>
+        <database>Unknown</database>
+	</source>
+	<size>
+		<width>450</width>
+		<height>310</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>hotdog</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+        <confidence>1.0</confidence>
+		<bndbox>
+			<xmin>67</xmin>
+			<ymin>60</ymin>
+			<xmax>180</xmax>
+			<ymax>198</ymax>
+		</bndbox>
+	</object>
+</annotation>
