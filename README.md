@@ -81,7 +81,9 @@ N.B.: including an image directory with ```-id``` is purely optional if you want
 ## utils
 | Utility | Type | Description |
 | ------- | ------- | ------- |
-| convert_gt_xml | CLI & Library | Converts xml annotations to space delimited file per image file with each row being an object in the format <class> <left/xmin> <top/ymin> <right/xmax> <bottom/ymax>.|
+| convert_annotations | CLI & Library | Converts annotations styles depending on filetype - simplified function call for the other utils modules. |
+| convert_darkflow_json_to_txt | CLI & Library | Converts xml annotations to space delimited file per image file with each row being an object in the format <class> <left/xmin> <top/ymin> <right/xmax> <bottom/ymax>.|
+| convert_xml_to_text | CLI & Library | Converts darkflow style json annotations to space delimited file per image file with each row being an object in the format <class> <left/xmin> <top/ymin> <right/xmax> <bottom/ymax>.|
 
 ## scripts/extra
 Collection of python scripts that convert from different annotation formats to the format required for this tool.

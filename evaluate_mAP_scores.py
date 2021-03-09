@@ -110,11 +110,8 @@ def calculate_mAP_scores(ground_truth_dir: str,
     # if there are no images then no animation can be shown
     IMG_PATH = img_dir  # os.path.join(os.getcwd(), 'input', 'images-optional')
 
-    logger.debug(animate)
     if animate:
-        logger.debug(animate)
         animate = check_image_files_exist(image_dir=IMG_PATH)
-    logger.debug(animate)
 
     """
      Create a ".temp_files/" and "output/" directory
@@ -131,9 +128,10 @@ def calculate_mAP_scores(ground_truth_dir: str,
     else:
         output_files_path = out_dir
     if output_files_path is not None:
-        if os.path.exists(output_files_path):  # reset the output directory
-            shutil.rmtree(output_files_path)
-        os.makedirs(output_files_path)
+        if os.path.exists(output_files_path) is False:
+            os.makedirs(output_files_path)
+        else:
+            logger.warning("Warning! Output path already exists - writing into the same directory!")
         if draw_plot:
             os.makedirs(os.path.join(output_files_path, "classes"))
         if animate:
@@ -144,8 +142,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
          Load each of the ground-truth files into a temporary ".json" file.
          Create a list of all the class names present in the ground-truth (gt_classes).
     """
-    # get a list with the ground-truth files
-    ground_truth_files_list = glob.glob(GT_PATH + '/*.txt')
+    ground_truth_files_list = [os.path.join(GT_PATH, f) for f in os.listdir(GT_PATH) if f.endswith('.txt')]
     if len(ground_truth_files_list) == 0:
         clean_exit(exit_code=1, msg="Error: No ground-truth files found!", clean_up_dirs=directories_to_clean)
     ground_truth_files_list.sort()
@@ -155,7 +152,6 @@ def calculate_mAP_scores(ground_truth_dir: str,
 
     gt_files = []
     for txt_file in ground_truth_files_list:
-        # print(txt_file)
         file_id = txt_file.split(".txt", 1)[0]
         file_id = os.path.basename(os.path.normpath(file_id))
         # check if there is a correspondent detection-results file
@@ -218,8 +214,6 @@ def calculate_mAP_scores(ground_truth_dir: str,
     # let's sort the classes alphabetically
     gt_classes = sorted(gt_classes)
     n_classes = len(gt_classes)
-    # print(gt_classes)
-    # print(gt_counter_per_class)
 
     """
      Check format of the flag --set_class_iou (if used)
