@@ -2,7 +2,7 @@ import sys
 import os
 import argparse
 import json
-from datetime import datetime
+from datetime import datetime as dt
 from xml.dom import minidom
 from logzero import logger
 
@@ -95,7 +95,7 @@ def write_list_of_pvoc_annotations_to_pvoc_xml(list_of_pvoc_annotations: list, o
         Returns nothing
     """
     doc = minidom.Document()
-    doc.appendChild(doc.createComment("Annotations generated on: " + str(datetime.now)))
+    doc.appendChild(doc.createComment("Annotations generated on: " + str(dt.now())))
 
     annotation = doc.createElement('annotation')
     doc.appendChild(annotation)
