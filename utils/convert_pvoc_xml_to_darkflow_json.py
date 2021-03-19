@@ -1,6 +1,7 @@
 import sys
 import os
 import argparse
+import json
 import xml.etree.ElementTree as ET
 from logzero import logger
 
@@ -33,26 +34,22 @@ def convert_ground_truth_xml(ground_truth_dir: str, out_dir: str):
 
     for xf in xml_list:
         file_name, file_ext = os.path.splitext(xf)
-
-        json_object = [{"label": "hotdog",
-                        "confidence": 0.35,
-                        "topleft": {"x": 82, "y": 77},
-                        "bottomright": {"x": 250, "y": 288}}]
-
         list_of_objects = []
-
         root = ET.parse(os.path.join(ground_truth_dir, xf)).getroot()
         for obj in root.findall('object'):
             new_json_object = {}
-            new_json_object['label'] = obj.find('name').text
             bndbox = obj.find('bndbox')
             left = bndbox.find('xmin').text
             top = bndbox.find('ymin').text
             right = bndbox.find('xmax').text
             bottom = bndbox.find('ymax').text
-            new_json_object['confidence'] = 1
-            new_f.write("%s %s %s %s %s\n" % (obj_name, left, top, right, bottom))
-
+            new_json_object["label"] = obj.find('name').text
+            new_json_object["confidence"] = 1.0
+            new_json_object["topleft"] = {"x": left, "y": top}
+            new_json_object["bottomright"] = {"x": right, "y": bottom}
+            list_of_objects.append(new_json_object)
+        with open(os.path.join(out_dir, file_name + '.json'), 'w')as fout:
+            json.dump(list_of_objects, fout)
     logger.info("Conversion completed! Output at: " + out_dir)
     return out_dir
 
@@ -67,22 +64,27 @@ def convert_prediction_xml(predictions_dir: str, out_dir: str):
     xml_list = [f for f in file_list if f.endswith('.xml')]
     logger.info("Num files to convert: {}".format(len(xml_list)))
     if len(xml_list) == 0:
-        logger.error("ERROR: no .xml files found in ground-truth - exiting task.")
+        logger.error("ERROR: no .xml files found in predictions - exiting task.")
         sys.exit(1)
 
     for xf in xml_list:
         file_name, file_ext = os.path.splitext(xf)
-        with open(os.path.join(out_dir, file_name + '.txt'), 'w+') as new_f:
-            root = ET.parse(os.path.join(predictions_dir, xf)).getroot()
-            for obj in root.findall('object'):
-                obj_name = obj.find('name').text
-                confidence = obj.find('confidence').text
-                bndbox = obj.find('bndbox')
-                left = bndbox.find('xmin').text
-                top = bndbox.find('ymin').text
-                right = bndbox.find('xmax').text
-                bottom = bndbox.find('ymax').text
-                new_f.write("%s %s %s %s %s %s\n" % (obj_name, confidence, left, top, right, bottom))
+        list_of_objects = []
+        root = ET.parse(os.path.join(predictions_dir, xf)).getroot()
+        for obj in root.findall('object'):
+            new_json_object = {}
+            bndbox = obj.find('bndbox')
+            left = bndbox.find('xmin').text
+            top = bndbox.find('ymin').text
+            right = bndbox.find('xmax').text
+            bottom = bndbox.find('ymax').text
+            new_json_object["label"] = obj.find('name').text
+            new_json_object["confidence"] = obj.find('confidence').text
+            new_json_object["topleft"] = {"x": left, "y": top}
+            new_json_object["bottomright"] = {"x": right, "y": bottom}
+            list_of_objects.append(new_json_object)
+        with open(os.path.join(out_dir, file_name + '.json'), 'w')as fout:
+            json.dump(list_of_objects, fout)
     logger.info("Conversion completed! Output at: " + out_dir)
     return out_dir
 
