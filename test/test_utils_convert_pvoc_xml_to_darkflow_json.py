@@ -4,7 +4,7 @@ import unittest
 from utils import convert_pvoc_xml_to_darkflow_json
 
 
-class TestConvertPascalVOCXML(unittest.TestCase):
+class TestConvertPascalVocXmlToDarkflowJson(unittest.TestCase):
     def setUp(self) -> None:
         self.test_gt_dir = 'sample_data/ground_truth/xml'
         self.test_pr_dir = 'sample_data/predictions/xml'

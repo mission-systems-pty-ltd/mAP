@@ -4,7 +4,7 @@ import unittest
 from utils import convert_darkflow_json_to_txt
 
 
-class TestConvertPascalVOCXML(unittest.TestCase):
+class TestConvertDarkflowJsonToTxt(unittest.TestCase):
     def setUp(self) -> None:
         self.test_gt_dir = 'sample_data/ground_truth/json'
         self.test_pr_dir = 'sample_data/predictions/json'
