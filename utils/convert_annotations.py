@@ -2,7 +2,7 @@ import os
 from logzero import logger
 import sys
 import argparse
-from . import convert_xml_to_txt
+from . import convert_pvoc_xml_to_txt
 from . import convert_darkflow_json_to_txt
 
 
@@ -23,8 +23,8 @@ def convert_ground_truth_files(ground_truth_dir: str, out_dir: str):
     ext_list = list(set(file_exts))
     if len(ext_list) == 1:
         if ext_list[0] == '.xml':
-            gt_dir = convert_xml_to_txt.convert_ground_truth_xml(ground_truth_dir=ground_truth_dir,
-                                                                 out_dir=out_dir)
+            gt_dir = convert_pvoc_xml_to_txt.convert_ground_truth_xml(ground_truth_dir=ground_truth_dir,
+                                                                      out_dir=out_dir)
             return gt_dir
         elif ext_list[0] == '.json':
             gt_dir = convert_darkflow_json_to_txt.convert_ground_truth_darkflow_json(ground_truth_dir=ground_truth_dir,
@@ -47,8 +47,8 @@ def convert_prediction_files(predictions_dir: str, out_dir: str):
     ext_list = list(set(file_exts))
     if len(ext_list) == 1:
         if ext_list[0] == '.xml':
-            pr_dir = convert_xml_to_txt.convert_prediction_xml(predictions_dir=predictions_dir,
-                                                               out_dir=out_dir)
+            pr_dir = convert_pvoc_xml_to_txt.convert_prediction_xml(predictions_dir=predictions_dir,
+                                                                    out_dir=out_dir)
             return pr_dir
         elif ext_list[0] == '.json':
             pr_dir = convert_darkflow_json_to_txt.convert_prediction_darkflow_json(predictions_dir=predictions_dir,
