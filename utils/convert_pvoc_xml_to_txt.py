@@ -18,7 +18,6 @@ def main(arguments):
 
 
 def convert_ground_truth_xml(ground_truth_dir: str, out_dir: str):
-    print(out_dir)
     if os.path.exists(out_dir):
         logger.error("ERROR: path exists at {} - try a different output path.".format(out_dir))
         sys.exit(1)
