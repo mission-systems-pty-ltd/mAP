@@ -81,9 +81,13 @@ N.B.: including an image directory with ```-id``` is purely optional if you want
 ## utils
 | Utility | Type | Description |
 | ------- | ------- | ------- |
-| convert_annotations | CLI & Library | Converts annotations styles depending on filetype - simplified function call for the other utils modules. |
-| convert_darkflow_json_to_txt | CLI & Library | Converts xml annotations to space delimited file per image file with each row being an object in the format <class> <left/xmin> <top/ymin> <right/xmax> <bottom/ymax>.|
-| convert_xml_to_text | CLI & Library | Converts darkflow style json annotations to space delimited file per image file with each row being an object in the format <class> <left/xmin> <top/ymin> <right/xmax> <bottom/ymax>.|
+| convert_annotations | CLI & Library | Converts annotations styles depending on filetype for the purpose of mAP score calculation - simplified function call for the other utils modules. |
+| convert_darkflow_json_to_pvoc_xml | CLI & Library | Converts darkflow style json annotations to Pascal VOC XML format. |
+| convert_darkflow_json_to_xyxy_txt | CLI & Library | Converts xml annotations to space delimited file per image file with each row being an object in the format <class> <left/xmin> <top/ymin> <right/xmax> <bottom/ymax>.|
+| convert_pvoc_xml_to_darkflow_json | CLI & Library | Converts Pascal VOC XML files to Darkflow style json annotations |
+| convert_pvoc_xml_to_xyxy_txt | CLI & Library | Converts darkflow style json annotations to space delimited file per image file with each row being an object in the format <class> <left/xmin> <top/ymin> <right/xmax> <bottom/ymax>.|
+| convert_pvoc_xml_to_yolo_lxywh_txt | CLI & Library | Converts darkflow style json annotations to space delimited file per image file with each row being an object in the format <class label> <norm_bbox_centre_x> <norm_bbox_centre_y> <norm_bbox_width> <norm_bbox_height>.|
+
 
 ## scripts/extra
 Collection of python scripts that convert from different annotation formats to the format required for this tool.
