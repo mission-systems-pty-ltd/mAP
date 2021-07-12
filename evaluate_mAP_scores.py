@@ -12,6 +12,58 @@ import numpy as np
 from logzero import logger
 from datetime import datetime as dt
 
+from icecream import ic
+name = 'evaluate_mAP_scaores'
+def log( entry: str) -> None:
+    print("[ {} | {}] ".format(dt.now().strftime("%Y-%m-%d %H:%M:%S.%f"), name) + entry)
+    return None
+
+def intersect_gt_and_pred(DR_PATH, GT_PATH):
+    # make sure that the cwd() in the beginning is the location of the python script (so that every path makes sense)
+    #os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    backup_folder = 'backup_no_matches_found' # must end without slash
+
+    os.chdir(GT_PATH)
+    gt_files = glob.glob('*.txt')
+    if len(gt_files) == 0:
+        print("Error: no .txt files found in", GT_PATH)
+        sys.exit()
+    os.chdir(DR_PATH)
+    dr_files = glob.glob('*.txt')
+    if len(dr_files) == 0:
+        print("Error: no .txt files found in", DR_PATH)
+        sys.exit()
+
+    gt_files = set(gt_files)
+    dr_files = set(dr_files)
+    log('total ground-truth files: {}'.format(len(gt_files)))
+    log('total detection-results files: {}'.format(len(dr_files)))
+
+    gt_backup = gt_files - dr_files
+    dr_backup = dr_files - gt_files
+
+    backup(GT_PATH, gt_backup, backup_folder)
+    backup(DR_PATH, dr_backup, backup_folder)
+    if gt_backup:
+        log('total ground-truth backup files: {}'.format(len(gt_backup)))
+    if dr_backup:
+        log('total detection-results backup files: {}'.format(len(dr_backup)))
+
+    intersection = gt_files & dr_files
+    log('total intersected files: {}'.format(len(intersection)))
+    log("Intersection completed!")
+
+def backup(src_folder, backup_files, backup_folder):
+    # non-intersection files (txt format) will be moved to a backup folder
+    if not backup_files:
+        log('No backup required for {}'.format(src_folder))
+        return
+    os.chdir(src_folder)
+    ## create the backup dir if it doesn't exist already
+    if not os.path.exists(backup_folder):
+        os.makedirs(backup_folder)
+    for file in backup_files:
+        os.rename(file, backup_folder + '/' + file)
 
 def main(arguments):
     logger.info("mAP CLI Tool")
@@ -56,12 +108,11 @@ def check_image_files_exist(image_dir: str) -> bool:
             logger.warning("No image directory {} - animations deactivated!".format(image_dir))
             return False
         else:
-            for dirpath, dirnames, files in os.walk(image_dir):
+            for (root,dirs,files) in os.walk(image_dir, topdown=True):
                 if not files:
                     logger.warning("No images in directory {} - animations deactivated!".format(image_dir))
                     return False
             return True
-
 
 def clean_up(clean_up_dirs: list = ['.temp_files']):
     for cud in clean_up_dirs:
@@ -116,7 +167,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
     """
      Create a ".temp_files/" and "output/" directory
     """
-    TEMP_FILES_PATH = ".temp_files"
+    TEMP_FILES_PATH = "/home/tom/tmp/out"
     directories_to_clean = [TEMP_FILES_PATH]
 
     if not os.path.exists(TEMP_FILES_PATH):  # if it doesn't exist already
@@ -142,6 +193,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
          Load each of the ground-truth files into a temporary ".json" file.
          Create a list of all the class names present in the ground-truth (gt_classes).
     """
+    intersect_gt_and_pred(DR_PATH, GT_PATH)
     ground_truth_files_list = [os.path.join(GT_PATH, f) for f in os.listdir(GT_PATH) if f.endswith('.txt')]
     if len(ground_truth_files_list) == 0:
         clean_exit(exit_code=1, msg="Error: No ground-truth files found!", clean_up_dirs=directories_to_clean)
@@ -206,10 +258,11 @@ def calculate_mAP_scores(ground_truth_dir: str,
 
         # dump bounding_boxes into a ".json" file
         new_temp_file = TEMP_FILES_PATH + "/" + file_id + "_ground_truth.json"
+        if not os.path.exists(TEMP_FILES_PATH):
+            os.makedirs(TEMP_FILES_PATH)
         gt_files.append(new_temp_file)
         with open(new_temp_file, 'w') as outfile:
-            json.dump(bounding_boxes, outfile)
-
+            json.dump(bounding_boxes, outfile, ensure_ascii=False, indent=4)
     gt_classes = list(gt_counter_per_class.keys())
     # let's sort the classes alphabetically
     gt_classes = sorted(gt_classes)
@@ -319,7 +372,6 @@ def calculate_mAP_scores(ground_truth_dir: str,
                         error_msg = "Error. Multiple image with id: " + file_id
                         clean_exit(exit_code=1, msg=error_msg, clean_up_dirs=directories_to_clean)
                     else:  # found image
-                        # print(IMG_PATH + "/" + ground_truth_img[0])
                         # Load image
                         img = cv2.imread(IMG_PATH + "/" + ground_truth_img[0])
                         # load image with draws of multiple detections
@@ -360,6 +412,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
                 if animate:
                     status = "NO MATCH FOUND!"  # status is only used in the animation
                 # set minimum overlap
+                ic(ovmax)
                 min_overlap = MINOVERLAP
                 if specific_iou_flagged:
                     if class_name in specific_iou_classes:
@@ -528,6 +581,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
     """
      Draw false negatives
     """
+    """
     if animate:
         pink = (203, 192, 255)
         for tmp_file in gt_files:
@@ -547,7 +601,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
                     bbgt = [int(round(float(x))) for x in obj["bbox"].split()]
                     cv2.rectangle(img, (bbgt[0], bbgt[1]), (bbgt[2], bbgt[3]), pink, 2)
             cv2.imwrite(img_cumulative_path, img)
-
+    """
     # remove the temp_files directory
     shutil.rmtree(TEMP_FILES_PATH)
 
