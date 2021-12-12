@@ -167,7 +167,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
     """
      Create a ".temp_files/" and "output/" directory
     """
-    TEMP_FILES_PATH = "/home/tom/tmp/out"
+    TEMP_FILES_PATH = os.path.expanduser("~")+"/tmp"+"/out/"
     directories_to_clean = [TEMP_FILES_PATH]
 
     if not os.path.exists(TEMP_FILES_PATH):  # if it doesn't exist already
