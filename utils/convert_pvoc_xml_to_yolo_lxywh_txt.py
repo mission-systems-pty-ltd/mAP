@@ -92,6 +92,37 @@ def convert_ground_truth_xml(ground_truth_dir: str, out_dir: str):
     logger.info("Conversion completed! Output at: " + out_dir)
     return out_dir
 
+def convert_ground_truth_xml_to_pd(ground_truth_dir: str, out_dir: str):
+    file_list = [f for f in os.listdir(ground_truth_dir) if os.path.isfile(os.path.join(ground_truth_dir, f))]
+    xml_list = [f for f in file_list if f.endswith('.xml')]
+    logger.info("Num files to convert: {}".format(len(xml_list)))
+    if len(xml_list) == 0:
+        logger.error("ERROR: no .xml files found in ground-truth - exiting task.")
+        sys.exit(1)
+
+    file_name, file_ext = os.path.splitext(xml_list[0])
+    if os.path.exists(out_dir):
+        logger.error("ERROR: path exists at {} - try a different output path.".format(out_dir))
+        return out_dir, file_name
+        sys.exit(1)
+    else:
+        os.makedirs(out_dir)
+
+    with open(os.path.join(out_dir, file_name + '.txt'), 'w+') as new_f:
+        for xf in xml_list:
+            root = ET.parse(os.path.join(ground_truth_dir, xf)).getroot()
+            size = root.find('size')
+            for obj in root.findall('object'):
+                obj_name = obj.find('name').text
+                bndbox = obj.find('bndbox')
+                xmin = int(bndbox.find('xmin').text)
+                ymin = int(bndbox.find('ymin').text)
+                xmax = int(bndbox.find('xmax').text)
+                ymax = int(bndbox.find('ymax').text)
+                line = "{} {} {:.6f} {:.6f} {:.6f} {:.6f}\n".format(xf[:-4]+".png", obj_name, xmin, ymin, xmax, ymax)
+                new_f.write(line)
+    logger.info("Conversion completed! Output at: " + out_dir)
+    return out_dir, file_name
 
 def convert_prediction_xml(predictions_dir: str, out_dir: str):
     if os.path.exists(out_dir):
@@ -128,7 +159,7 @@ def convert_prediction_xml(predictions_dir: str, out_dir: str):
                 line = "{} {} {:.6f} {:.6f} {:.6f} {:.6f}\n".format(obj_name, confidence, norm_c_x, norm_c_y, norm_bbox_width, norm_bbox_height)
                 new_f.write(line)
     logger.info("Conversion completed! Output at: " + out_dir)
-    return out_dir
+    return out_dir, file_name
 
 
 def parse_args(argv):
