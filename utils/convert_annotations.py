@@ -1,10 +1,6 @@
-import os
+import os, sys, argparse
 from logzero import logger
-import sys
-import argparse
-from . import convert_pvoc_xml_to_xyxy_txt
-from . import convert_darkflow_json_to_xyxy_txt
-
+from . import convert_pvoc_xml_to_xyxy_txt, convert_darkflow_json_to_xyxy_txt
 
 def main(arguments):
     args = parse_args(argv=arguments)
@@ -16,7 +12,6 @@ def main(arguments):
         pred_dir = os.path.join(args.output_dir, "predictions")
         converted_pr_file_dir = convert_prediction_files(predictions_dir=args.predictions_dir, out_dir=pred_dir)
         logger.info("Ground Truth at: " + converted_pr_file_dir)
-
 
 def convert_ground_truth_files(ground_truth_dir: str, out_dir: str):
     file_exts = [os.path.splitext(f)[1] for f in os.listdir(ground_truth_dir) if os.path.isfile(os.path.join(ground_truth_dir, f))]
@@ -39,7 +34,6 @@ def convert_ground_truth_files(ground_truth_dir: str, out_dir: str):
         logger.error("Less than one file extension type - this dataset is probably broken.")
         sys.exit(1)
     return
-
 
 def convert_prediction_files(predictions_dir: str, out_dir: str):
     file_exts = [os.path.splitext(f)[1] for f in os.listdir(predictions_dir)
@@ -64,7 +58,6 @@ def convert_prediction_files(predictions_dir: str, out_dir: str):
         sys.exit(1)
     return
 
-
 def parse_args(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("-gt", "--ground_truth_dir", help="path to ground truth annotations", default=None)
@@ -72,7 +65,6 @@ def parse_args(argv):
     parser.add_argument("-od", "--output_dir", help="path to output files", default=None)
     arguments = parser.parse_args(argv[1:])
     return arguments
-
 
 if __name__ == '__main__':
     main(sys.argv)
