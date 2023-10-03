@@ -1,7 +1,7 @@
 #!/bin/bash
 ######### INSTALLER FOR THIS PACKAGE INTO PYTHON PATH
 
-TARGETDIR=~/.local/lib/python3.6/site-packages
+TARGETDIR=~/.local/lib/python3.8/site-packages
 
 SOURCEDIR=$( echo $PWD )
 MODULE_NAME=$( basename $PWD )
