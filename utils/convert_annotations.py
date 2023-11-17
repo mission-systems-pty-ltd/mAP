@@ -1,6 +1,7 @@
 import os, sys, argparse
 from logzero import logger
 from . import convert_pvoc_xml_to_xyxy_txt, convert_darkflow_json_to_xyxy_txt
+from icecream import ic
 
 def main(arguments):
     args = parse_args(argv=arguments)
@@ -16,14 +17,16 @@ def main(arguments):
 def convert_ground_truth_files(ground_truth_dir: str, out_dir: str):
     file_exts = [os.path.splitext(f)[1] for f in os.listdir(ground_truth_dir) if os.path.isfile(os.path.join(ground_truth_dir, f))]
     ext_list = list(set(file_exts))
+    print(ext_list)
+    ext_list = ['.xml']
     if len(ext_list) == 1:
         if ext_list[0] == '.xml':
             gt_dir = convert_pvoc_xml_to_xyxy_txt.convert_ground_truth_xml(ground_truth_dir=ground_truth_dir,
-                                                                      out_dir=out_dir)
+                                                                        out_dir=out_dir)
             return gt_dir
         elif ext_list[0] == '.json':
             gt_dir = convert_darkflow_json_to_xyxy_txt.convert_ground_truth_darkflow_json(ground_truth_dir=ground_truth_dir,
-                                                                                     out_dir=out_dir)
+                                                                                        out_dir=out_dir)
             return gt_dir
         else:
             logger.error("Converter not implemented for annotation file type {}".format(ext_list[0]))
@@ -39,6 +42,7 @@ def convert_prediction_files(predictions_dir: str, out_dir: str):
     file_exts = [os.path.splitext(f)[1] for f in os.listdir(predictions_dir)
                  if os.path.isfile(os.path.join(predictions_dir, f))]
     ext_list = list(set(file_exts))
+    ic(ext_list)
     if len(ext_list) == 1:
         if ext_list[0] == '.xml':
             pr_dir = convert_pvoc_xml_to_xyxy_txt.convert_prediction_xml(predictions_dir=predictions_dir,
