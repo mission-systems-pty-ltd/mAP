@@ -150,7 +150,10 @@ def calculate_mAP_scores(ground_truth_dir: str,
                     (Right,Bottom)
     '''
     logger.info("Calculating mAP Score")
-    MINOVERLAP = 0.5  # default value (defined in the PASCAL VOC2012 challenge)
+    MINOVERLAP = 0.01  # default value (defined in the PASCAL VOC2012 challenge)
+    ignore = ['tgt_box_11', 'tgt_box_3','tgt_craypot']
+    print(ignore)
+    #exit(1)
     if set_class_iou is not None:
         specific_iou_flagged = True if len(set_class_iou) > 0 else False
     else:
@@ -235,6 +238,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
             # check if class is in the ignore list, if yes skip
             if class_name in ignore:
                 continue
+            class_name = 'MLO'
             bbox = left + " " + top + " " + right + " " + bottom
             if is_difficult:
                 bounding_boxes.append({"class_name": class_name, "bbox": bbox, "used": False, "difficult": True})
@@ -265,7 +269,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
             json.dump(bounding_boxes, outfile, ensure_ascii=False, indent=4)
     gt_classes = list(gt_counter_per_class.keys())
     # let's sort the classes alphabetically
-    gt_classes = sorted(gt_classes)
+    gt_classes = ['MLO']
     n_classes = len(gt_classes)
 
     """
@@ -321,6 +325,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
             for line in lines:
                 try:
                     tmp_class_name, confidence, left, top, right, bottom = line.split()
+                    tmp_class_name = 'MLO'
                 except ValueError:
                     error_msg = "Error: File " + txt_file + " in the wrong format.\n"
                     error_msg += " Expected: <class_name> <confidence> <left> <top> <right> <bottom>\n"
@@ -393,6 +398,8 @@ def calculate_mAP_scores(ground_truth_dir: str,
                 # load detected object bounding-box
                 bb = [float(x) for x in detection["bbox"].split()]
                 for obj in ground_truth_data:
+                    obj['class_name'] = 'MLO'
+
                     # look for a class_name match
                     if obj["class_name"] == class_name:
                         bbgt = [float(x) for x in obj["bbox"].split()]
@@ -404,6 +411,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
                             ua = (bb[2] - bb[0] + 1) * (bb[3] - bb[1] + 1) + (bbgt[2] - bbgt[0]
                                                                               + 1) * (bbgt[3] - bbgt[1] + 1) - iw * ih
                             ov = iw * ih / ua
+                            ic(ovmax)
                             if ov > ovmax:
                                 ovmax = ov
                                 gt_match = obj
@@ -618,6 +626,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
             # check if class is in the ignore list, if yes skip
             if class_name in ignore:
                 continue
+            class_name = 'MLO'
             # count that object
             if class_name in det_counter_per_class:
                 det_counter_per_class[class_name] += 1
@@ -683,6 +692,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
         to_show = False
         plot_color = 'forestgreen'
         true_p_bar = count_true_positives
+        ic(len(det_counter_per_class))
         draw_plot_func(
             det_counter_per_class,
             len(det_counter_per_class),

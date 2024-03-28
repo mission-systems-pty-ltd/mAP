@@ -1,7 +1,7 @@
 #!/bin/bash
 ######### INSTALLER FOR THIS PACKAGE INTO PYTHON PATH
 
-TARGETDIR=~/micromamba/envs/ms-atr/lib/python3.8/
+TARGETDIR=~/.local/lib/python3.8/site-packages
 
 SOURCEDIR=$( echo $PWD )
 MODULE_NAME=$( basename $PWD )
