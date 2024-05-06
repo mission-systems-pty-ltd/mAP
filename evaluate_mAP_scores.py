@@ -150,7 +150,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
                     (Right,Bottom)
     '''
     logger.info("Calculating mAP Score")
-    MINOVERLAP = 0.01  # default value (defined in the PASCAL VOC2012 challenge)
+    MINOVERLAP = 0.5  # default value (defined in the PASCAL VOC2012 challenge)
     ignore = ['tgt_box_11', 'tgt_box_3','tgt_craypot']
     print(ignore)
     #exit(1)
@@ -558,7 +558,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
                 plt.fill_between(area_under_curve_x, 0, area_under_curve_y, alpha=0.2, edgecolor='r')
                 # set window title
                 fig = plt.gcf()  # gcf - get current figure
-                fig.canvas.set_window_title('AP ' + class_name)
+                #fig.canvas.set_window_title('AP ' + class_name)
                 # set plot title
                 plt.title('class: ' + text)
                 # plt.suptitle('This is a somewhat long figure title', fontsize=16)
@@ -980,7 +980,7 @@ def draw_plot_func(dictionary, n_classes, window_title, plot_title, x_label, out
             if i == (len(sorted_values)-1): # largest bar
                 adjust_axes(r, t, fig, axes)
     # set window title
-    fig.canvas.set_window_title(window_title)
+    #fig.canvas.set_window_title(window_title)
     # write classes in y axis
     tick_font_size = 12
     plt.yticks(range(n_classes), sorted_keys, fontsize=tick_font_size)
