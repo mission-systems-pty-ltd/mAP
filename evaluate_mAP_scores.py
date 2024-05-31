@@ -151,7 +151,7 @@ def calculate_mAP_scores(ground_truth_dir: str,
     '''
     logger.info("Calculating mAP Score")
     MINOVERLAP = 0.5  # default value (defined in the PASCAL VOC2012 challenge)
-    ignore = ['tgt_box_11', 'tgt_box_3','tgt_craypot']
+    ignore = ['tgt_box_11', 'tgt_box_3','tgt_craypot', 'tmp']
     log('Ignoring the following classes: {}'.format(ignore))
     #exit(1)
     if set_class_iou is not None:
